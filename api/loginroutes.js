@@ -27,36 +27,38 @@ function checkUserAndGenerateToken(data, req, res) {
   );
 }
 
-router.get("/sendRequest", async (req, res) => {
-  let userid, friendid;
-
+router.get("/details", async (req, res) => {
+  let userid;
   try {
     userid = validations.checkId(req.user.id, "User ID");
-    friendid = validations.checkId(req.body.friendid);
   } catch (error) {
     return res.status(403).json({ error: error.message });
   }
 
   try {
-    let sendRequestInfo = await userData.addSendFriendRequest(userid, friendid);
+    let sendRequestInfo = await userData.getUser(userid);
     return sendRequestInfo;
   } catch (error) {
     return res.status(500).json({ error: "Server Error" });
   }
 });
 
-router.get("/removeFriend", async (req, res) => {
-  let userid, friendid;
-
+router.get("/updateFriendRequest", async (req, res) => {
+  let username, userid, status;
   try {
     userid = validations.checkId(req.user.id, "User ID");
-    friendid = validations.checkId(req.body.friendid);
+    username = validations.checkString(req.body.username, "Username");
+    status = validations.checkFriendStatsus(req.body.status);
   } catch (error) {
     return res.status(403).json({ error: error.message });
   }
 
   try {
-    let sendRequestInfo = await userData.removeFriend(userid, friendid);
+    let sendRequestInfo;
+    if (status === "accept")
+      sendRequestInfo = await userData.addFriend(userid, username);
+    else status === "reject";
+    sendRequestInfo = await userData.removeSendFriendRequest(userid, username);
     return sendRequestInfo;
   } catch (error) {
     return res.status(500).json({ error: "Server Error" });

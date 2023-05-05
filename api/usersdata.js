@@ -14,7 +14,7 @@ const exportedMethods = {
       username,
       password: hashpassword,
       friends: [],
-      sendRequest: [],
+      sentRequest: [],
       receivedRequest: [],
     };
     let userInsertedInfo = await usersCollection.insertOne(newUser);
@@ -73,15 +73,61 @@ const exportedMethods = {
     let usersCollection = await users();
     let dbUser = await usersCollection.findOne(
       { _id: new ObjectId(userid) },
-      { projection: { _id: 1, username: 1, friends: 1 } }
+      {
+        projection: {
+          _id: 1,
+          username: 1,
+          friends: 1,
+          sentRequest: 1,
+          receivedRequest: 1,
+        },
+      }
     );
     if (!dbUser) throw new Error(`No User Exists for ID ${userid}`);
-    return dbUser.friends;
+
+    let friendArr = dbUser.friends;
+    let sendArr = dbUser.sentRequest;
+    let receivedArr = dbUser.receivedRequest;
+
+    if (friendArr.length > 0)
+      friendArr = friendArr.map((id) => {
+        new ObjectId(id);
+      });
+
+    if (sendArr.length > 0)
+      sendArr = sendArr.map((id) => {
+        new ObjectId(id);
+      });
+    if (receivedArr.length > 0)
+      receivedArr = receivedArr.map((id) => {
+        new ObjectId(id);
+      });
+    let friendsList = await usersCollection
+      .find(
+        { _id: { $in: friendArr } },
+        { projection: { _id: 1, username: 1 } }
+      )
+      .toArray();
+    let sendList = await usersCollection
+      .find({ _id: { $in: sendArr } }, { projection: { _id: 1, username: 1 } })
+      .toArray();
+    let receivedList = await usersCollection
+      .find(
+        { _id: { $in: receivedArr } },
+        { projection: { _id: 1, username: 1 } }
+      )
+      .toArray();
+
+    return {
+      friends: friendsList,
+      receivedRequest: receivedList,
+      sentRequest: sendList,
+    };
   },
 
-  async addFriend(userid, friendid) {
+  async addFriend(userid, friendusername) {
     userid = validations.checkId(userid, "User ID");
-    friendid = validations.checkId(userid, "User ID");
+    friendusername = validations.checkString(friendusername, "User Name");
 
     let usersCollection = await users();
     let dbUser = await usersCollection.findOne(
@@ -91,18 +137,18 @@ const exportedMethods = {
     if (!dbUser) throw new Error(`No User Exists for ID ${userid}`);
 
     let friendUser = await usersCollection.findOne(
-      { _id: new ObjectId(friendid) },
+      { username: friendusername },
       { projection: { _id: 1, username: 1 } }
     );
     if (!friendUser) throw new Error(`No User Exists for ID ${friendid}`);
-
+    friendUser._id = friendUser._id.toString();
     let dbUserInfo = await usersCollection.updateOne(
       {
         _id: new ObjectId(userid),
       },
       {
-        $push: { friends: friendid },
-        $pull: { receivedRequest: friendid },
+        $push: { friends: friendUser._id },
+        $pull: { receivedRequest: friendUser._id },
       }
     );
     if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);
@@ -162,16 +208,16 @@ const exportedMethods = {
         _id: new ObjectId(userid),
       },
       {
-        $push: { sendRequest: friendid },
+        $push: { sentRequest: friendid },
       }
     );
     if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);
     return { inserted: true };
   },
 
-  async removeSendFriendRequest(userid, friendid) {
+  async removeSendFriendRequest(userid, friendusername) {
     userid = validations.checkId(userid, "User ID");
-    friendid = validations.checkId(userid, "User ID");
+    friendusername = validations.checkString(friendusername, "Friend name");
 
     let usersCollection = await users();
     let dbUser = await usersCollection.findOne(
@@ -181,7 +227,7 @@ const exportedMethods = {
     if (!dbUser) throw new Error(`No User Exists for ID ${userid}`);
 
     let friendUser = await usersCollection.findOne(
-      { _id: new ObjectId(friendid) },
+      { username: friendusername },
       { projection: { _id: 1, username: 1 } }
     );
     if (!friendUser) throw new Error(`No User Exists for ID ${friendid}`);
@@ -191,7 +237,7 @@ const exportedMethods = {
         _id: new ObjectId(userid),
       },
       {
-        $pull: { sendRequest: friendid },
+        $pull: { sentRequest: friendid },
       }
     );
     if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);

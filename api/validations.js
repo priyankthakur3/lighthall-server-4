@@ -79,20 +79,16 @@ const exportedMethods = {
 
     return number;
   },
-  checkGameStatus(taskStatus) {
-    if (
-      !taskStatus ||
-      typeof taskStatus !== "string" ||
-      taskStatus.trim().length === 0
-    )
+  checkFriendStatsus(status) {
+    if (!status || typeof status !== "string" || status.trim().length === 0)
       throw new Error("Error: Expecteed Task Value");
-    taskStatus = taskStatus.trim().toLowerCase();
-    const taskList = ["won", "lost"];
-    if (!taskList.includes(taskStatus))
+    status = status.trim().toLowerCase();
+    const statusList = ["accept", "reject"];
+    if (!taskList.includes(status))
       throw new Error(
-        `Expected: Task Status to be either of ${taskList.join(",")}`
+        `Expected: Task Status to be either of ${statusList.join(",")}`
       );
-    return taskStatus;
+    return status;
   },
 };
 

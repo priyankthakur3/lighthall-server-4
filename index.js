@@ -2,8 +2,6 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const loginRoutes = require("./api/loginroutes");
-const wordRoutes = require("./api/wordRoutes");
-const leadboardRouter = require("./api/leaderboardroute");
 
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
