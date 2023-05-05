@@ -14,6 +14,11 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(function (req, res, next) {
+  res.setHeader("Access-Control-Allow-Methods", "*");
+  next();
+});
+
 app.use("/api", (req, res, next) => {
   try {
     if (
