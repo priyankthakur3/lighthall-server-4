@@ -90,18 +90,19 @@ const exportedMethods = {
     let receivedArr = dbUser.receivedRequest;
 
     if (friendArr.length > 0)
-      friendArr = friendArr.map((id) => {
-        new ObjectId(id);
-      });
+      for (let i = 0; i < friendArr.length; i++) {
+        friendArr[i] = new ObjectId(friendArr[i]);
+      }
 
     if (sendArr.length > 0)
-      sendArr = sendArr.map((id) => {
-        new ObjectId(id);
-      });
+      for (let i = 0; i < sendArr.length; i++) {
+        sendArr[i] = new ObjectId(sendArr[i]);
+      }
+
     if (receivedArr.length > 0)
-      receivedArr = receivedArr.map((id) => {
-        new ObjectId(id);
-      });
+      for (let i = 0; i < receivedArr.length; i++) {
+        receivedArr[i] = new ObjectId(receivedArr[i]);
+      }
     let friendsList = await usersCollection
       .find(
         { _id: { $in: friendArr } },
@@ -141,17 +142,35 @@ const exportedMethods = {
       { projection: { _id: 1, username: 1 } }
     );
     if (!friendUser) throw new Error(`No User Exists for ID ${friendid}`);
-    friendUser._id = friendUser._id.toString();
-    let dbUserInfo = await usersCollection.updateOne(
+
+    let dbFriendUserInfo = await usersCollection.updateOne(
+      {
+        username: friendusername,
+      },
+      {
+        $push: { friends: dbUser._id.toString() },
+        $pull: {
+          receivedRequest: dbUser._id.toString(),
+          sentRequest: dbUser._id.toString(),
+        },
+        $pull: {},
+      }
+    );
+    if (!dbFriendUserInfo.acknowledged) throw new Error(`Error`);
+
+    let dbCurrentUserInfo = await usersCollection.updateOne(
       {
         _id: new ObjectId(userid),
       },
       {
-        $push: { friends: friendUser._id },
-        $pull: { receivedRequest: friendUser._id },
+        $push: { friends: friendUser._id.toString() },
+        $pull: {
+          receivedRequest: friendUser._id.toString(),
+          sentRequest: friendUser._id.toString(),
+        },
       }
     );
-    if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);
+    if (!dbCurrentUserInfo.acknowledged) throw new Error(`Error`);
     return { inserted: true };
   },
 
@@ -186,9 +205,9 @@ const exportedMethods = {
     return { removed: true };
   },
 
-  async addSendFriendRequest(userid, friendid) {
+  async addSendFriendRequest(userid, friendusername) {
     userid = validations.checkId(userid, "User ID");
-    friendid = validations.checkId(userid, "User ID");
+    friendusername = validations.checkString(friendusername, "User ID");
 
     let usersCollection = await users();
     let dbUser = await usersCollection.findOne(
@@ -198,21 +217,34 @@ const exportedMethods = {
     if (!dbUser) throw new Error(`No User Exists for ID ${userid}`);
 
     let friendUser = await usersCollection.findOne(
-      { _id: new ObjectId(friendid) },
+      { username: friendusername },
       { projection: { _id: 1, username: 1 } }
     );
-    if (!friendUser) throw new Error(`No User Exists for ID ${friendid}`);
-
+    if (!friendUser)
+      throw new Error(`No User Exists for username ${friendusername}`);
+    if (userid === friendUser._id)
+      throw new Error(`You cannot send friend Request to self`);
     let dbUserInfo = await usersCollection.updateOne(
       {
         _id: new ObjectId(userid),
       },
       {
-        $push: { sentRequest: friendid },
+        $push: { sentRequest: friendUser._id.toString() },
       }
     );
     if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);
-    return { inserted: true };
+
+    let dbUserFriendInfo = await usersCollection.updateOne(
+      {
+        username: friendusername,
+      },
+      {
+        $push: { receivedRequest: userid },
+      }
+    );
+    if (!dbUserFriendInfo.acknowledged)
+      throw new Error(`Error Creating new Game`);
+    return { requestSent: true };
   },
 
   async removeSendFriendRequest(userid, friendusername) {
@@ -237,10 +269,28 @@ const exportedMethods = {
         _id: new ObjectId(userid),
       },
       {
-        $pull: { sentRequest: friendid },
+        $pull: {
+          receivedRequest: friendUser._id.toString(),
+          sentRequest: friendUser._id.toString(),
+        },
       }
     );
     if (!dbUserInfo.acknowledged) throw new Error(`Error Creating new Game`);
+
+    let dbFriendUserInfo = await usersCollection.updateOne(
+      {
+        _id: friendUser._id,
+      },
+      {
+        $pull: {
+          receivedRequest: dbUser._id.toString(),
+          sentRequest: dbUser._id.toString(),
+        },
+      }
+    );
+    if (!dbFriendUserInfo.acknowledged)
+      throw new Error(`Error Creating new Game`);
+
     return { removed: true };
   },
 };

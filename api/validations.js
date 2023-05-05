@@ -84,7 +84,7 @@ const exportedMethods = {
       throw new Error("Error: Expecteed Task Value");
     status = status.trim().toLowerCase();
     const statusList = ["accept", "reject"];
-    if (!taskList.includes(status))
+    if (!statusList.includes(status))
       throw new Error(
         `Expected: Task Status to be either of ${statusList.join(",")}`
       );
