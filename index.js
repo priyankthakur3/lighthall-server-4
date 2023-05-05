@@ -14,8 +14,7 @@ app.use("/api", (req, res, next) => {
     if (
       req.path === "/user/login" ||
       req.path === "/user/register" ||
-      req.path === "/" ||
-      req.path === "/gameStatus"
+      req.path === "/user/"
     ) {
       next();
     } else {
