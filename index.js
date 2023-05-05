@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const loginRoutes = require("./api/loginroutes");
+const outingRoutes = require("./api/outingsroutes");
 
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -41,6 +42,7 @@ app.use("/api", (req, res, next) => {
 });
 
 app.use("/api/user", loginRoutes);
+app.use("/api/outing", outingRoutes);
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => console.log(`Server is running in port ${PORT}`));
